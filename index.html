@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ponto Eletrônico</title>
+<style>
+body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
+.container { max-width:400px; margin:auto; padding:20px; }
+input, button { width:100%; padding:10px; margin:5px 0; }
+button { background:#333; color:#fff; border:none; }
+.hidden { display:none; }
+</style>
+</head>
+<body>
+
+<div class="container" id="loginScreen">
+<h2>Login</h2>
+<input type="text" id="login" placeholder="Login">
+<input type="password" id="senha" placeholder="Senha">
+<button onclick="fazerLogin()">Entrar</button>
+</div>
+
+<div class="container hidden" id="userScreen">
+<h2>Ponto</h2>
+<p id="userInfo"></p>
+<button onclick="registrarEntrada()">Registrar Entrada</button>
+<button onclick="registrarSaida()">Registrar Saída</button>
+<p id="resultado"></p>
+<button onclick="logout()">Sair</button>
+</div>
+
+<div class="container hidden" id="adminScreen">
+<h2>Admin</h2>
+<input type="text" id="novoLogin" placeholder="Novo Login">
+<input type="password" id="novaSenha" placeholder="Nova Senha">
+<button onclick="addUser()">Adicionar Usuário</button>
+<ul id="listaUsers"></ul>
+<button onclick="logout()">Sair</button>
+</div>
+
+<script>
+let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [
+{login:'ADMIN', senha:'casabranca'}
+];
+
+let registros = JSON.parse(localStorage.getItem('registros')) || {};
+let usuarioAtual = null;
+
+function salvar(){
+localStorage.setItem('usuarios', JSON.stringify(usuarios));
+localStorage.setItem('registros', JSON.stringify(registros));
+}
+
+function fazerLogin(){
+let login = document.getElementById('login').value;
+let senha = document.getElementById('senha').value;
+
+let user = usuarios.find(u => u.login===login && u.senha===senha);
+if(!user){ alert('Login inválido'); return; }
+
+usuarioAtual = login;
+
+document.getElementById('loginScreen').classList.add('hidden');
+
+if(login==='ADMIN'){
+mostrarAdmin();
+}else{
+mostrarUsuario();
+}
+}
+
+function mostrarUsuario(){
+document.getElementById('userScreen').classList.remove('hidden');
+document.getElementById('userInfo').innerText = 'Usuário: '+usuarioAtual;
+}
+
+function mostrarAdmin(){
+document.getElementById('adminScreen').classList.remove('hidden');
+atualizarLista();
+}
+
+function addUser(){
+let login = document.getElementById('novoLogin').value;
+let senha = document.getElementById('novaSenha').value;
+usuarios.push({login, senha});
+salvar();
+atualizarLista();
+}
+
+function atualizarLista(){
+let ul = document.getElementById('listaUsers');
+ul.innerHTML='';
+usuarios.forEach(u=>{
+let li=document.createElement('li');
+li.innerText=u.login;
+ul.appendChild(li);
+});
+}
+
+function registrarEntrada(){
+let agora = new Date();
+if(!registros[usuarioAtual]) registros[usuarioAtual]=[];
+registros[usuarioAtual].push({entrada:agora.toISOString(), saida:null});
+salvar();
+document.getElementById('resultado').innerText='Entrada registrada';
+}
+
+function registrarSaida(){
+let agora = new Date();
+let lista = registros[usuarioAtual];
+let ultimo = lista[lista.length-1];
+if(ultimo && !ultimo.saida){
+ultimo.saida = agora.toISOString();
+let entrada = new Date(ultimo.entrada);
+let horas = (agora - entrada)/1000/60/60;
+document.getElementById('resultado').innerText='Saída registrada. Horas: '+horas.toFixed(2);
+}
+salvar();
+}
+
+function logout(){
+location.reload();
+}
+
+// Simulação reconhecimento facial
+// (necessita backend real ou API como face-api.js)
+</script>
+
+</body>
+</html>
