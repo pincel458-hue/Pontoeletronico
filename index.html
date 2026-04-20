@@ -1,130 +1,101 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ponto Eletrônico</title>
+<title>Controle de Ponto</title>
 <style>
-body { font-family: Arial; margin:0; padding:0; background:#f4f4f4; }
-.container { max-width:400px; margin:auto; padding:20px; }
-input, button { width:100%; padding:10px; margin:5px 0; }
-button { background:#333; color:#fff; border:none; }
+body { font-family: Arial; background:#f4f4f4; }
+.container { width: 300px; margin: 50px auto; padding:20px; background:#fff; border-radius:8px; }
+button { width:100%; padding:10px; margin-top:10px; }
 .hidden { display:none; }
 </style>
 </head>
 <body>
 
-<div class="container" id="loginScreen">
+<div id="login" class="container">
 <h2>Login</h2>
-<input type="text" id="login" placeholder="Login">
-<input type="password" id="senha" placeholder="Senha">
-<button onclick="fazerLogin()">Entrar</button>
+<input id="email" placeholder="Email"><br>
+<input id="senha" type="password" placeholder="Senha"><br>
+<button onclick="login()">Entrar</button>
 </div>
 
-<div class="container hidden" id="userScreen">
-<h2>Ponto</h2>
-<p id="userInfo"></p>
-<button onclick="registrarEntrada()">Registrar Entrada</button>
-<button onclick="registrarSaida()">Registrar Saída</button>
-<p id="resultado"></p>
+<div id="ponto" class="container hidden">
+<h2>Marcação de Ponto</h2>
+<button onclick="marcar('Entrada')">Entrada</button>
+<button onclick="marcar('Saída')">Saída</button>
+<button onclick="marcar('Almoço Início')">Início Almoço</button>
+<button onclick="marcar('Almoço Fim')">Fim Almoço</button>
 <button onclick="logout()">Sair</button>
 </div>
 
-<div class="container hidden" id="adminScreen">
-<h2>Admin</h2>
-<input type="text" id="novoLogin" placeholder="Novo Login">
-<input type="password" id="novaSenha" placeholder="Nova Senha">
-<button onclick="addUser()">Adicionar Usuário</button>
-<ul id="listaUsers"></ul>
+<div id="admin" class="container hidden">
+<h2>Admin Dashboard</h2>
+<button onclick="mostrarUsuarios()">Lista de Usuários</button>
+<button onclick="criarUsuario()">Criar Usuário</button>
+<button onclick="imprimir()">Imprimir Relatório</button>
 <button onclick="logout()">Sair</button>
+<div id="conteudo"></div>
 </div>
 
 <script>
-let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [
-{login:'ADMIN', senha:'casabranca'}
+let usuarios = [
+ { email: 'admin@admin', senha: '123456', admin: true }
 ];
 
-let registros = JSON.parse(localStorage.getItem('registros')) || {};
-let usuarioAtual = null;
+let registros = [];
 
-function salvar(){
-localStorage.setItem('usuarios', JSON.stringify(usuarios));
-localStorage.setItem('registros', JSON.stringify(registros));
+function login() {
+ let email = document.getElementById('email').value;
+ let senha = document.getElementById('senha').value;
+ let user = usuarios.find(u => u.email === email && u.senha === senha);
+
+ if(!user) return alert('Login inválido');
+
+ document.getElementById('login').classList.add('hidden');
+
+ if(user.admin) {
+   document.getElementById('admin').classList.remove('hidden');
+ } else {
+   document.getElementById('ponto').classList.remove('hidden');
+ }
 }
 
-function fazerLogin(){
-let login = document.getElementById('login').value;
-let senha = document.getElementById('senha').value;
-
-let user = usuarios.find(u => u.login===login && u.senha===senha);
-if(!user){ alert('Login inválido'); return; }
-
-usuarioAtual = login;
-
-document.getElementById('loginScreen').classList.add('hidden');
-
-if(login==='ADMIN'){
-mostrarAdmin();
-}else{
-mostrarUsuario();
-}
+function logout() {
+ location.reload();
 }
 
-function mostrarUsuario(){
-document.getElementById('userScreen').classList.remove('hidden');
-document.getElementById('userInfo').innerText = 'Usuário: '+usuarioAtual;
+function marcar(tipo) {
+ let data = new Date().toLocaleString();
+ registros.push({ tipo, data });
+ alert(tipo + ' registrado em ' + data);
 }
 
-function mostrarAdmin(){
-document.getElementById('adminScreen').classList.remove('hidden');
-atualizarLista();
+function mostrarUsuarios() {
+ let html = '<h3>Usuários</h3>';
+ usuarios.forEach(u => {
+   html += `<p>${u.email}</p>`;
+ });
+ document.getElementById('conteudo').innerHTML = html;
 }
 
-function addUser(){
-let login = document.getElementById('novoLogin').value;
-let senha = document.getElementById('novaSenha').value;
-usuarios.push({login, senha});
-salvar();
-atualizarLista();
+function criarUsuario() {
+ let email = prompt('Email:');
+ let senha = prompt('Senha:');
+ if(email && senha) {
+   usuarios.push({ email, senha, admin:false });
+   alert('Usuário criado');
+ }
 }
 
-function atualizarLista(){
-let ul = document.getElementById('listaUsers');
-ul.innerHTML='';
-usuarios.forEach(u=>{
-let li=document.createElement('li');
-li.innerText=u.login;
-ul.appendChild(li);
-});
+function imprimir() {
+ let html = '<h3>Relatório</h3>';
+ registros.forEach(r => {
+   html += `<p>${r.tipo} - ${r.data}</p>`;
+ });
+ document.getElementById('conteudo').innerHTML = html;
+ window.print();
 }
-
-function registrarEntrada(){
-let agora = new Date();
-if(!registros[usuarioAtual]) registros[usuarioAtual]=[];
-registros[usuarioAtual].push({entrada:agora.toISOString(), saida:null});
-salvar();
-document.getElementById('resultado').innerText='Entrada registrada';
-}
-
-function registrarSaida(){
-let agora = new Date();
-let lista = registros[usuarioAtual];
-let ultimo = lista[lista.length-1];
-if(ultimo && !ultimo.saida){
-ultimo.saida = agora.toISOString();
-let entrada = new Date(ultimo.entrada);
-let horas = (agora - entrada)/1000/60/60;
-document.getElementById('resultado').innerText='Saída registrada. Horas: '+horas.toFixed(2);
-}
-salvar();
-}
-
-function logout(){
-location.reload();
-}
-
-// Simulação reconhecimento facial
-// (necessita backend real ou API como face-api.js)
 </script>
 
 </body>
